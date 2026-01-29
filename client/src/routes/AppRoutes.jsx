@@ -5,6 +5,7 @@ import { Signup } from "../pages/signup";
 import { Admin } from "../pages/admin";
 import { PatientList } from "../pages/patient-list";
 import { ProtectedRoute } from "../features/auth/ui/ProtectedRoute";
+import { AdminRoute } from "../features/auth/ui/AdminRoute";
 import { PublicRoute } from "../features/auth/ui/PublicRoute";
 import { PATH } from "../constants/path";
 
@@ -14,6 +15,9 @@ export const AppRoutes = () => {
       <Route element={<ProtectedRoute />}>
         <Route path={PATH.HOME} element={<Home />} />
         <Route path={PATH.PATIENT_LIST} element={<PatientList />} />
+      </Route>
+
+      <Route element={<AdminRoute />}>
         <Route path={PATH.ADMIN} element={<Admin />} />
       </Route>
 

@@ -86,20 +86,19 @@ const getPatients = async (req, res) => {
       filter.name = { $regex: req.query.search, $options: "i" };
     }
 
-    // Filter by date (records created on selected date)
-    if (req.query.date) {
-      const selectedDate = new Date(req.query.date);
-      // Create separate date objects to avoid mutation issues
-      const startOfDay = new Date(selectedDate);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(selectedDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      filter.createdAt = {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      };
+    // Filter by date range (fromDate and toDate)
+    if (req.query.fromDate || req.query.toDate) {
+      filter.createdAt = {};
+      if (req.query.fromDate) {
+        const fromDate = new Date(req.query.fromDate);
+        fromDate.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = fromDate;
+      }
+      if (req.query.toDate) {
+        const toDate = new Date(req.query.toDate);
+        toDate.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = toDate;
+      }
     }
 
     // Determine sort order (default: newest first)

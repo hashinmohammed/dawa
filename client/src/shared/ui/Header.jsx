@@ -37,6 +37,15 @@ export function Header() {
                 >
                   Patient List
                 </Link>
+                {/* Admin only link */}
+                {user?.role === "admin" && (
+                  <Link
+                    to={PATH.ADMIN}
+                    className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition"
+                  >
+                    Settings
+                  </Link>
+                )}
               </nav>
             )}
           </div>
