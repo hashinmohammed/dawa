@@ -78,7 +78,7 @@ const getPatients = async (req, res) => {
 
     // Filter by doctor
     if (req.query.doctor) {
-      filter.doctor = req.query.doctor;
+      filter.doctor = { $regex: req.query.doctor, $options: "i" };
     }
 
     // Search by name (case-insensitive)

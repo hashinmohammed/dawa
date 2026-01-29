@@ -7,8 +7,12 @@ import customToast from "../../shared/ui/customToast";
 import { client } from "../../lib/axios";
 import { Header } from "../../shared/ui/Header";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS } from "../../constants/keys";
+
 export function Home() {
   const { isAuthenticated } = useStore();
+  const queryClient = useQueryClient();
   // user and logout are handled in Header now
   const [useSameNumber, setUseSameNumber] = useState(false);
   const [isCustomDepartment, setIsCustomDepartment] = useState(false);
@@ -33,6 +37,7 @@ export function Home() {
     try {
       await client.post("/api/patients", data);
       customToast.success("Patient registered successfully!");
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PATIENTS] });
       reset();
     } catch (error) {
       console.error("Registration error:", error);

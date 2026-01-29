@@ -46,6 +46,7 @@ export function PatientList() {
   const {
     data,
     isLoading: loading,
+    isFetching,
     isError,
     error,
   } = useQuery({
@@ -171,18 +172,11 @@ export function PatientList() {
 
   // List of departments (same as in registration form)
   const departments = [
-    "Cardiology",
-    "Neurology",
-    "Orthopedics",
+    "General Practitioner",
     "Pediatrics",
-    "Dermatology",
+    "Cardiology",
+    "Orthopedics",
     "Gynecology",
-    "General Medicine",
-    "ENT",
-    "Ophthalmology",
-    "Dentistry",
-    "Psychiatry",
-    "Emergency",
   ];
 
   return (
@@ -306,7 +300,7 @@ export function PatientList() {
 
         {/* Table */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {loading ? (
+          {loading || (isFetching && patients.length === 0) ? (
             <div className="p-12 text-center">
               <p className="text-gray-500">Loading patients...</p>
             </div>
@@ -436,18 +430,49 @@ export function PatientList() {
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
                             {isEditing ? (
-                              <select
-                                name="department"
-                                value={editFormData.department}
-                                onChange={handleEditFormChange}
-                                className="w-full px-2 py-1 text-sm border rounded"
-                              >
-                                {departments.map((dept) => (
-                                  <option key={dept} value={dept}>
-                                    {dept}
-                                  </option>
-                                ))}
-                              </select>
+                              <div className="space-y-1">
+                                <select
+                                  name="department"
+                                  value={
+                                    departments.includes(
+                                      editFormData.department,
+                                    )
+                                      ? editFormData.department
+                                      : "Other"
+                                  }
+                                  onChange={(e) => {
+                                    if (e.target.value === "Other") {
+                                      setEditFormData((prev) => ({
+                                        ...prev,
+                                        department: "",
+                                      }));
+                                    } else {
+                                      handleEditFormChange(e);
+                                    }
+                                  }}
+                                  className="w-full px-2 py-1 text-sm border rounded"
+                                >
+                                  {departments.map((dept) => (
+                                    <option key={dept} value={dept}>
+                                      {dept}
+                                    </option>
+                                  ))}
+                                  <option value="Other">Other</option>
+                                </select>
+                                {!departments.includes(
+                                  editFormData.department,
+                                ) && (
+                                  <input
+                                    type="text"
+                                    name="department"
+                                    value={editFormData.department}
+                                    onChange={handleEditFormChange}
+                                    placeholder="Enter department"
+                                    className="w-full px-2 py-1 text-sm border rounded"
+                                    autoFocus
+                                  />
+                                )}
+                              </div>
                             ) : (
                               patient.department
                             )}
