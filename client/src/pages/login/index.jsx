@@ -1,8 +1,9 @@
 import { useForm } from "react-hook-form";
 import { client } from "../../lib/axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../../shared/store/useStore";
 import { PATH } from "../../constants/path";
+import customToast from "../../shared/ui/customToast";
 
 export function Login() {
   const {
@@ -11,6 +12,7 @@ export function Login() {
     formState: { errors },
   } = useForm();
   const { login } = useStore();
+  const navigate = useNavigate();
 
   const onSubmit = async (data) => {
     try {
@@ -21,9 +23,11 @@ export function Login() {
       });
       // Login locally with both tokens
       login(res.data, res.data.accessToken, res.data.refreshToken);
+      customToast.success("Login successful!");
+      navigate(PATH.HOME);
     } catch (error) {
       console.error("Login error:", error);
-      alert(error.response?.data?.message || "Login failed");
+      customToast.error(error.response?.data?.message || "Login failed");
     }
   };
 
