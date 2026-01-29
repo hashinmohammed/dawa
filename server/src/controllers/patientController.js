@@ -126,7 +126,55 @@ const getPatients = async (req, res) => {
   }
 };
 
+// @desc    Update patient
+// @route   PUT /api/patients/:id
+// @access  Private
+const updatePatient = async (req, res) => {
+  try {
+    const patient = await Patient.findById(req.params.id);
+
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    // Update fields
+    const updatedPatient = await Patient.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }, // Return updated document
+    );
+
+    res.json({
+      message: "Patient updated successfully",
+      patient: updatedPatient,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete patient
+// @route   DELETE /api/patients/:id
+// @access  Private
+const deletePatient = async (req, res) => {
+  try {
+    const patient = await Patient.findById(req.params.id);
+
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    await Patient.findByIdAndDelete(req.params.id);
+
+    res.json({ message: "Patient removed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerPatient,
   getPatients,
+  updatePatient,
+  deletePatient,
 };

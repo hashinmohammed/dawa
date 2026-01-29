@@ -33,4 +33,14 @@ export const patientService = {
     const response = await client.get(`/api/patients?${params.toString()}`);
     return response.data;
   },
+
+  updatePatient: async (id, data) => {
+    const response = await client.put(`/api/patients/${id}`, data);
+    return response.data;
+  },
+
+  deletePatient: async (id) => {
+    const response = await client.delete(`/api/patients/${id}`);
+    return response.data;
+  },
 };

@@ -8,10 +8,18 @@ import {
   ArrowUpDown,
   X,
   Calendar,
+  Pencil,
+  Trash2,
+  Check,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import customToast from "../../shared/ui/customToast";
 import { patientService } from "../../services/patientService";
 import { QUERY_KEYS } from "../../constants/keys";
@@ -20,6 +28,11 @@ import { Header } from "../../shared/ui/Header";
 
 export function PatientList() {
   const [page, setPage] = useState(1);
+  const queryClient = useQueryClient();
+
+  // inline editing state
+  const [editingId, setEditingId] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -39,6 +52,29 @@ export function PatientList() {
     queryKey: [QUERY_KEYS.PATIENTS, page, filters],
     queryFn: () => patientService.getPatients({ page, ...filters }),
     placeholderData: keepPreviousData,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => patientService.updatePatient(id, data),
+    onSuccess: () => {
+      customToast.success("Patient updated successfully");
+      setEditingId(null);
+      queryClient.invalidateQueries([QUERY_KEYS.PATIENTS]);
+    },
+    onError: (err) => {
+      customToast.error(err.response?.data?.message || "Failed to update");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => patientService.deletePatient(id),
+    onSuccess: () => {
+      customToast.success("Patient deleted successfully");
+      queryClient.invalidateQueries([QUERY_KEYS.PATIENTS]);
+    },
+    onError: (err) => {
+      customToast.error(err.response?.data?.message || "Failed to delete");
+    },
   });
 
   useEffect(() => {
@@ -93,6 +129,44 @@ export function PatientList() {
     // Remove any spaces or special characters
     const cleanNumber = phoneNumber.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${cleanNumber}`, "_blank");
+  };
+
+  // Edit Handlers
+  const handleEditClick = (patient) => {
+    setEditingId(patient._id);
+    setEditFormData({
+      name: patient.name,
+      age: patient.age,
+      sex: patient.sex,
+      place: patient.place,
+      department: patient.department,
+      doctor: patient.doctor,
+      phoneNumber: patient.phoneNumber,
+      whatsappNumber: patient.whatsappNumber,
+    });
+  };
+
+  const handleCancelClick = () => {
+    setEditingId(null);
+    setEditFormData({});
+    // Reset mutations if needed? No need.
+  };
+
+  const handleSaveClick = (id) => {
+    updateMutation.mutate({ id, data: editFormData });
+  };
+
+  const handleDeleteClick = (id) => {
+    if (
+      window.confirm("Are you sure you want to delete this patient record?")
+    ) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // List of departments (same as in registration form)
@@ -273,10 +347,14 @@ export function PatientList() {
                       <th className="px-6 py-4 text-left text-sm font-semibold">
                         Contact
                       </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {patients.map((patient, index) => {
+                      const isEditing = editingId === patient._id;
                       const serialNumber =
                         (pagination.currentPage - 1) *
                           pagination.patientsPerPage +
@@ -311,24 +389,94 @@ export function PatientList() {
                             {serialNumber}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {patient.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {patient.sex}
-                            </div>
+                            {isEditing ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  name="name"
+                                  value={editFormData.name}
+                                  onChange={handleEditFormChange}
+                                  className="w-full px-2 py-1 text-sm border rounded"
+                                  placeholder="Name"
+                                />
+                                <select
+                                  name="sex"
+                                  value={editFormData.sex}
+                                  onChange={handleEditFormChange}
+                                  className="w-full px-2 py-1 text-sm border rounded"
+                                >
+                                  <option value="Male">Male</option>
+                                  <option value="Female">Female</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {patient.name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {patient.sex}
+                                </div>
+                              </>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            {patient.age}
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                name="age"
+                                value={editFormData.age}
+                                onChange={handleEditFormChange}
+                                className="w-16 px-2 py-1 text-sm border rounded"
+                              />
+                            ) : (
+                              patient.age
+                            )}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            {patient.department}
+                            {isEditing ? (
+                              <select
+                                name="department"
+                                value={editFormData.department}
+                                onChange={handleEditFormChange}
+                                className="w-full px-2 py-1 text-sm border rounded"
+                              >
+                                {departments.map((dept) => (
+                                  <option key={dept} value={dept}>
+                                    {dept}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              patient.department
+                            )}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            {patient.doctor}
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                name="doctor"
+                                value={editFormData.doctor}
+                                onChange={handleEditFormChange}
+                                className="w-full px-2 py-1 text-sm border rounded"
+                              />
+                            ) : (
+                              patient.doctor
+                            )}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            {patient.place}
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                name="place"
+                                value={editFormData.place}
+                                onChange={handleEditFormChange}
+                                className="w-full px-2 py-1 text-sm border rounded"
+                              />
+                            ) : (
+                              patient.place
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">
@@ -349,27 +497,87 @@ export function PatientList() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <button
-                                onClick={() => handleCall(patient.phoneNumber)}
-                                className="p-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                                title={`Call ${patient.phoneNumber}`}
-                              >
-                                <Phone size={16} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleWhatsApp(
-                                    patient.whatsappNumber ||
-                                      patient.phoneNumber,
-                                  )
-                                }
-                                className="p-2 text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
-                                title={`WhatsApp ${patient.whatsappNumber || patient.phoneNumber}`}
-                              >
-                                <MessageCircle size={16} />
-                              </button>
-                            </div>
+                            {isEditing ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  name="phoneNumber"
+                                  value={editFormData.phoneNumber}
+                                  onChange={handleEditFormChange}
+                                  className="w-full px-2 py-1 text-sm border rounded"
+                                  placeholder="Phone"
+                                />
+                                <input
+                                  type="text"
+                                  name="whatsappNumber"
+                                  value={editFormData.whatsappNumber}
+                                  onChange={handleEditFormChange}
+                                  className="w-full px-2 py-1 text-sm border rounded"
+                                  placeholder="WhatsApp"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() =>
+                                    handleCall(patient.phoneNumber)
+                                  }
+                                  className="p-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                                  title={`Call ${patient.phoneNumber}`}
+                                >
+                                  <Phone size={16} />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleWhatsApp(
+                                      patient.whatsappNumber ||
+                                        patient.phoneNumber,
+                                    )
+                                  }
+                                  className="p-2 text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                                  title={`WhatsApp ${patient.whatsappNumber || patient.phoneNumber}`}
+                                >
+                                  <MessageCircle size={16} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {isEditing ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleSaveClick(patient._id)}
+                                  className="p-1 text-white bg-green-600 rounded hover:bg-green-700"
+                                  title="Save"
+                                >
+                                  <Check size={16} />
+                                </button>
+                                <button
+                                  onClick={handleCancelClick}
+                                  className="p-1 text-white bg-red-600 rounded hover:bg-red-700"
+                                  title="Cancel"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleEditClick(patient)}
+                                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  title="Edit"
+                                >
+                                  <Pencil size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteClick(patient._id)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
