@@ -16,6 +16,8 @@ import customToast from "../../shared/ui/customToast";
 import { patientService } from "../../services/patientService";
 import { QUERY_KEYS } from "../../constants/keys";
 
+import { Header } from "../../shared/ui/Header";
+
 export function PatientList() {
   const [page, setPage] = useState(1);
 
@@ -110,9 +112,10 @@ export function PatientList() {
   ];
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50">
+      <Header />
+      <main className="max-w-7xl mx-auto p-6">
+        {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Patient Records
@@ -466,7 +469,7 @@ export function PatientList() {
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
