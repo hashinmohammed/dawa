@@ -11,18 +11,13 @@ import {
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { client } from "../../lib/axios";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import customToast from "../../shared/ui/customToast";
+import { patientService } from "../../services/patientService";
+import { QUERY_KEYS } from "../../constants/keys";
 
 export function PatientList() {
-  const [patients, setPatients] = useState([]);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalPatients: 0,
-    patientsPerPage: 10,
-  });
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -33,59 +28,42 @@ export function PatientList() {
     sortOrder: "desc", // desc = newest first, asc = oldest first
   });
 
-  const fetchPatients = async (page = 1, currentFilters = filters) => {
-    try {
-      setLoading(true);
-
-      // Build query params
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: "10",
-      });
-
-      if (currentFilters.department)
-        params.append("department", currentFilters.department);
-      if (currentFilters.doctor) params.append("doctor", currentFilters.doctor);
-      if (currentFilters.search) params.append("search", currentFilters.search);
-      if (currentFilters.date) {
-        // Format date in local timezone as YYYY-MM-DD
-        const year = currentFilters.date.getFullYear();
-        const month = String(currentFilters.date.getMonth() + 1).padStart(
-          2,
-          "0",
-        );
-        const day = String(currentFilters.date.getDate()).padStart(2, "0");
-        const dateStr = `${year}-${month}-${day}`;
-        params.append("date", dateStr);
-      }
-      if (currentFilters.sortOrder)
-        params.append("sortOrder", currentFilters.sortOrder);
-
-      const response = await client.get(`/api/patients?${params.toString()}`);
-      setPatients(response.data.patients);
-      setPagination(response.data.pagination);
-    } catch (error) {
-      console.error("Error fetching patients:", error);
-      customToast.error("Failed to load patients");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data,
+    isLoading: loading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: [QUERY_KEYS.PATIENTS, page, filters],
+    queryFn: () => patientService.getPatients({ page, ...filters }),
+    placeholderData: keepPreviousData,
+  });
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    if (isError) {
+      customToast.error("Failed to load patients");
+      console.error(error);
+    }
+  }, [isError, error]);
+
+  const patients = data?.patients || [];
+  const pagination = data?.pagination || {
+    currentPage: 1,
+    totalPages: 1,
+    totalPatients: 0,
+    patientsPerPage: 10,
+  };
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchPatients(newPage);
+      setPage(newPage);
     }
   };
 
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    fetchPatients(1, newFilters); // Reset to page 1 when filtering
+    setPage(1); // Reset to page 1 when filtering
   };
 
   const handleClearFilters = () => {
@@ -97,7 +75,7 @@ export function PatientList() {
       sortOrder: "desc",
     };
     setFilters(clearedFilters);
-    fetchPatients(1, clearedFilters);
+    setPage(1);
   };
 
   const toggleSort = () => {
@@ -106,7 +84,7 @@ export function PatientList() {
   };
 
   const handleCall = (phoneNumber) => {
-    window.location.href = `tel:${phoneNumber}`;
+    window.open(`tel:${phoneNumber}`, "_self");
   };
 
   const handleWhatsApp = (phoneNumber) => {
