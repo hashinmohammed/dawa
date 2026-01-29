@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { client } from "../../lib/axios";
 import { Link } from "react-router-dom";
 import { useStore } from "../../shared/store/useStore";
 import { PATH } from "../../constants/path";
@@ -11,9 +12,19 @@ export function Login() {
   } = useForm();
   const { login } = useStore();
 
-  const onSubmit = (data) => {
-    console.log(data);
-    login({ name: data.email, email: data.email }, "mock-token-123");
+  const onSubmit = async (data) => {
+    try {
+      const { email, password } = data;
+      const res = await client.post("/api/auth/login", {
+        email,
+        password,
+      });
+      // Login locally with both tokens
+      login(res.data, res.data.accessToken, res.data.refreshToken);
+    } catch (error) {
+      console.error("Login error:", error);
+      alert(error.response?.data?.message || "Login failed");
+    }
   };
 
   return (

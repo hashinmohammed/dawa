@@ -1,13 +1,25 @@
 export const createAuthSlice = (set) => ({
   user: null,
-  token: localStorage.getItem("token") || null,
-  isAuthenticated: !!localStorage.getItem("token"),
-  login: (user, token) => {
-    localStorage.setItem("token", token);
-    set({ user, token, isAuthenticated: true });
+  accessToken: null,
+  refreshToken: localStorage.getItem("refreshToken") || null,
+  isAuthenticated: !!localStorage.getItem("refreshToken"),
+
+  login: (user, accessToken, refreshToken) => {
+    localStorage.setItem("refreshToken", refreshToken);
+    set({ user, accessToken, refreshToken, isAuthenticated: true });
   },
+
+  setAccessToken: (accessToken) => {
+    set({ accessToken });
+  },
+
   logout: () => {
-    localStorage.removeItem("token");
-    set({ user: null, token: null, isAuthenticated: false });
+    localStorage.removeItem("refreshToken");
+    set({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+    });
   },
 });

@@ -1,5 +1,7 @@
 import { useForm } from "react-hook-form";
+import { client } from "../../lib/axios";
 import { Link } from "react-router-dom";
+import { useStore } from "../../shared/store/useStore";
 import { PATH } from "../../constants/path";
 
 export function Signup() {
@@ -9,10 +11,24 @@ export function Signup() {
     formState: { errors },
     watch,
   } = useForm();
+  const { login } = useStore();
 
-  const onSubmit = (data) => {
-    console.log(data);
-    // Handle signup logic here
+  const onSubmit = async (data) => {
+    try {
+      const { name, email, password, role, phoneNumber } = data;
+      const res = await client.post("/api/auth/signup", {
+        name,
+        email,
+        password,
+        role,
+        phoneNumber,
+      });
+      // Login locally with both tokens
+      login(res.data, res.data.accessToken, res.data.refreshToken);
+    } catch (error) {
+      console.error("Signup error:", error);
+      alert(error.response?.data?.message || "Signup failed");
+    }
   };
 
   return (
@@ -45,6 +61,32 @@ export function Signup() {
               />
               {errors.email && (
                 <span className="text-red-500 text-xs">Email is required</span>
+              )}
+            </div>
+            <div>
+              <input
+                {...register("phoneNumber", { required: true })}
+                type="tel"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Phone Number"
+              />
+              {errors.phoneNumber && (
+                <span className="text-red-500 text-xs">
+                  Phonenumber is required
+                </span>
+              )}
+            </div>
+            <div>
+              <select
+                {...register("role", { required: true })}
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-white"
+              >
+                <option value="nurse">Nurse</option>
+                <option value="doctor">Doctor</option>
+                <option value="admin">Admin</option>
+              </select>
+              {errors.role && (
+                <span className="text-red-500 text-xs">Role is required</span>
               )}
             </div>
             <div>
