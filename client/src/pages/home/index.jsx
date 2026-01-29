@@ -16,7 +16,7 @@ export function Home() {
     formState: { errors },
     reset,
     setValue,
-    watch,
+    getValues,
   } = useForm();
 
   const handleLogout = async () => {
@@ -151,22 +151,27 @@ export function Home() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="sex"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sex *
                   </label>
-                  <select
-                    {...register("sex", { required: "Sex is required" })}
-                    id="sex"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-white"
-                  >
-                    <option value="">Select sex</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <div className="flex gap-4 mt-2">
+                    {["Male", "Female", "Other"].map((option) => (
+                      <label
+                        key={option}
+                        className="relative flex-1 cursor-pointer group"
+                      >
+                        <input
+                          {...register("sex", { required: "Sex is required" })}
+                          type="radio"
+                          value={option}
+                          className="peer sr-only"
+                        />
+                        <div className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg transition-all duration-200 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-indigo-500 hover:bg-gray-50 peer-checked:hover:bg-indigo-700">
+                          {option}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                   {errors.sex && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.sex.message}
@@ -223,7 +228,7 @@ export function Home() {
                       onChange={(e) => {
                         setUseSameNumber(e.target.checked);
                         if (e.target.checked) {
-                          const phoneNumber = watch("phoneNumber");
+                          const phoneNumber = getValues("phoneNumber");
                           setValue("whatsappNumber", phoneNumber);
                         } else {
                           setValue("whatsappNumber", "");
