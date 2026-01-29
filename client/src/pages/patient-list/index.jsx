@@ -1,5 +1,16 @@
 import { useState, useEffect } from "react";
-import { Phone, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Phone,
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ArrowUpDown,
+  X,
+  Calendar,
+} from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { client } from "../../lib/axios";
 import customToast from "../../shared/ui/customToast";
 
@@ -13,10 +24,44 @@ export function PatientList() {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchPatients = async (page = 1) => {
+  // Filter states
+  const [filters, setFilters] = useState({
+    department: "",
+    doctor: "",
+    search: "",
+    date: null,
+    sortOrder: "desc", // desc = newest first, asc = oldest first
+  });
+
+  const fetchPatients = async (page = 1, currentFilters = filters) => {
     try {
       setLoading(true);
-      const response = await client.get(`/api/patients?page=${page}&limit=10`);
+
+      // Build query params
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "10",
+      });
+
+      if (currentFilters.department)
+        params.append("department", currentFilters.department);
+      if (currentFilters.doctor) params.append("doctor", currentFilters.doctor);
+      if (currentFilters.search) params.append("search", currentFilters.search);
+      if (currentFilters.date) {
+        // Format date in local timezone as YYYY-MM-DD
+        const year = currentFilters.date.getFullYear();
+        const month = String(currentFilters.date.getMonth() + 1).padStart(
+          2,
+          "0",
+        );
+        const day = String(currentFilters.date.getDate()).padStart(2, "0");
+        const dateStr = `${year}-${month}-${day}`;
+        params.append("date", dateStr);
+      }
+      if (currentFilters.sortOrder)
+        params.append("sortOrder", currentFilters.sortOrder);
+
+      const response = await client.get(`/api/patients?${params.toString()}`);
       setPatients(response.data.patients);
       setPagination(response.data.pagination);
     } catch (error) {
@@ -37,6 +82,29 @@ export function PatientList() {
     }
   };
 
+  const handleFilterChange = (key, value) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    fetchPatients(1, newFilters); // Reset to page 1 when filtering
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters = {
+      department: "",
+      doctor: "",
+      search: "",
+      date: null,
+      sortOrder: "desc",
+    };
+    setFilters(clearedFilters);
+    fetchPatients(1, clearedFilters);
+  };
+
+  const toggleSort = () => {
+    const newSortOrder = filters.sortOrder === "desc" ? "asc" : "desc";
+    handleFilterChange("sortOrder", newSortOrder);
+  };
+
   const handleCall = (phoneNumber) => {
     window.location.href = `tel:${phoneNumber}`;
   };
@@ -46,6 +114,22 @@ export function PatientList() {
     const cleanNumber = phoneNumber.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${cleanNumber}`, "_blank");
   };
+
+  // List of departments (same as in registration form)
+  const departments = [
+    "Cardiology",
+    "Neurology",
+    "Orthopedics",
+    "Pediatrics",
+    "Dermatology",
+    "Gynecology",
+    "General Medicine",
+    "ENT",
+    "Ophthalmology",
+    "Dentistry",
+    "Psychiatry",
+    "Emergency",
+  ];
 
   return (
     <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 p-6">
@@ -58,6 +142,111 @@ export function PatientList() {
           <p className="text-gray-600">
             Total Patients: {pagination.totalPatients}
           </p>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {/* Name Search */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search by Name
+              </label>
+              <div className="relative">
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange("search", e.target.value)}
+                  placeholder="Enter patient name..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Department Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Department
+              </label>
+              <select
+                value={filters.department}
+                onChange={(e) =>
+                  handleFilterChange("department", e.target.value)
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              >
+                <option value="">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Doctor Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Doctor
+              </label>
+              <input
+                type="text"
+                value={filters.doctor}
+                onChange={(e) => handleFilterChange("doctor", e.target.value)}
+                placeholder="Enter doctor name..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            {/* Date Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Booking Date
+              </label>
+              <div className="relative">
+                <Calendar
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10 pointer-events-none"
+                  size={18}
+                />
+                <DatePicker
+                  selected={filters.date}
+                  onChange={(date) => handleFilterChange("date", date)}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="Select date..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  maxDate={new Date()}
+                  isClearable
+                />
+              </div>
+            </div>
+
+            {/* Sort & Clear */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sort by Time
+                </label>
+                <button
+                  onClick={toggleSort}
+                  className="w-full px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1 text-sm"
+                >
+                  <ArrowUpDown size={16} />
+                  {filters.sortOrder === "desc" ? "Newest" : "Oldest"}
+                </button>
+              </div>
+              <button
+                onClick={handleClearFilters}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
+                title="Clear all filters"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Table */}

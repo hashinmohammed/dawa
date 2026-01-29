@@ -68,10 +68,47 @@ const getPatients = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const total = await Patient.countDocuments();
-    const patients = await Patient.find()
+    // Build filter query
+    const filter = {};
+
+    // Filter by department
+    if (req.query.department) {
+      filter.department = req.query.department;
+    }
+
+    // Filter by doctor
+    if (req.query.doctor) {
+      filter.doctor = req.query.doctor;
+    }
+
+    // Search by name (case-insensitive)
+    if (req.query.search) {
+      filter.name = { $regex: req.query.search, $options: "i" };
+    }
+
+    // Filter by date (records created on selected date)
+    if (req.query.date) {
+      const selectedDate = new Date(req.query.date);
+      // Create separate date objects to avoid mutation issues
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      filter.createdAt = {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      };
+    }
+
+    // Determine sort order (default: newest first)
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+
+    const total = await Patient.countDocuments(filter);
+    const patients = await Patient.find(filter)
       .populate("registeredBy", "name email role")
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: sortOrder })
       .skip(skip)
       .limit(limit);
 

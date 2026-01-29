@@ -12,17 +12,19 @@ const getUserFromStorage = () => {
 
 export const createAuthSlice = (set, get) => ({
   user: getUserFromStorage(),
-  accessToken: null,
+  accessToken: localStorage.getItem("accessToken") || null,
   refreshToken: localStorage.getItem("refreshToken") || null,
   isAuthenticated: !!localStorage.getItem("refreshToken"),
 
   login: (user, accessToken, refreshToken) => {
     localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("user", JSON.stringify(user));
     set({ user, accessToken, refreshToken, isAuthenticated: true });
   },
 
   setAccessToken: (accessToken) => {
+    localStorage.setItem("accessToken", accessToken);
     set({ accessToken });
   },
 
@@ -31,6 +33,7 @@ export const createAuthSlice = (set, get) => ({
 
     // Always clear local storage first for immediate UI update
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     set({
       user: null,
