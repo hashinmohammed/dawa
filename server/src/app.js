@@ -15,5 +15,6 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/patients", require("./routes/patientRoutes"));
 
 module.exports = app;

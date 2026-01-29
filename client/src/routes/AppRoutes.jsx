@@ -3,6 +3,7 @@ import { Home } from "../pages/home";
 import { Login } from "../pages/login";
 import { Signup } from "../pages/signup";
 import { Admin } from "../pages/admin";
+import { PatientList } from "../pages/patient-list";
 import { ProtectedRoute } from "../features/auth/ui/ProtectedRoute";
 import { PublicRoute } from "../features/auth/ui/PublicRoute";
 import { PATH } from "../constants/path";
@@ -12,6 +13,7 @@ export const AppRoutes = () => {
     <Routes>
       <Route element={<ProtectedRoute />}>
         <Route path={PATH.HOME} element={<Home />} />
+        <Route path={PATH.PATIENT_LIST} element={<PatientList />} />
         <Route path={PATH.ADMIN} element={<Admin />} />
       </Route>
 

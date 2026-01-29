@@ -1,3 +1,5 @@
+import { client } from "../../../lib/axios";
+
 // Helper functions to manage localStorage
 const getUserFromStorage = () => {
   try {
@@ -8,7 +10,7 @@ const getUserFromStorage = () => {
   }
 };
 
-export const createAuthSlice = (set) => ({
+export const createAuthSlice = (set, get) => ({
   user: getUserFromStorage(),
   accessToken: null,
   refreshToken: localStorage.getItem("refreshToken") || null,
@@ -24,7 +26,10 @@ export const createAuthSlice = (set) => ({
     set({ accessToken });
   },
 
-  logout: () => {
+  logout: async () => {
+    const { refreshToken } = get();
+
+    // Always clear local storage first for immediate UI update
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     set({
@@ -33,5 +38,16 @@ export const createAuthSlice = (set) => ({
       refreshToken: null,
       isAuthenticated: false,
     });
+
+    // Then try to invalidate token on server
+    // Even if this fails, user is logged out locally
+    try {
+      if (refreshToken) {
+        await client.post("/api/auth/logout", { refreshToken });
+      }
+    } catch (error) {
+      // Silently fail - user is already logged out locally
+      console.error("Logout API error:", error);
+    }
   },
 });
