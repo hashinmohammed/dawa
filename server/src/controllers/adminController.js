@@ -181,9 +181,110 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const Setting = require("../models/Setting");
+
+// @desc    Get All Settings (Roles, Departments)
+// @route   GET /api/admin/settings
+// @access  Private/Admin
+const getSettings = async (req, res) => {
+  try {
+    let roles = await Setting.findOne({ key: "roles" });
+    let departments = await Setting.findOne({ key: "departments" });
+    let signupFlags = await Setting.findOne({ key: "signup_flags" });
+
+    // Initialize defaults if not present
+    if (!roles) {
+      roles = await Setting.create({
+        key: "roles",
+        values: ["admin", "doctor", "nurse"],
+      });
+    }
+
+    if (!departments) {
+      departments = await Setting.create({
+        key: "departments",
+        values: ["General", "Cardiology", "Pediatrics", "Dental"],
+      });
+    }
+
+    if (!signupFlags) {
+      signupFlags = await Setting.create({
+        key: "signup_flags",
+        values: ["admin_signup"], // Enabled by default
+      });
+    }
+
+    res.json({
+      roles: roles.values,
+      departments: departments.values,
+      signupFlags: signupFlags.values,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Add a value to a setting (role or department)
+// @route   POST /api/admin/settings
+// @access  Private/Admin
+const addSettingValue = async (req, res) => {
+  try {
+    const { key, value } = req.body; // key: 'roles' or 'departments'
+
+    if (!key || !value) {
+      return res.status(400).json({ message: "Key and value are required" });
+    }
+
+    const setting = await Setting.findOne({ key });
+    if (!setting) {
+      return res.status(404).json({ message: "Setting category not found" });
+    }
+
+    if (setting.values.includes(value)) {
+      return res.status(400).json({ message: "Value already exists" });
+    }
+
+    setting.values.push(value);
+    await setting.save();
+
+    res.json(setting.values);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Remove a value from a setting
+// @route   DELETE /api/admin/settings/:key/:value
+// @access  Private/Admin
+const deleteSettingValue = async (req, res) => {
+  try {
+    const { key, value } = req.params;
+
+    const setting = await Setting.findOne({ key });
+    if (!setting) {
+      return res.status(404).json({ message: "Setting category not found" });
+    }
+
+    // Prevent deleting "admin" role
+    if (key === "roles" && value === "admin") {
+      return res.status(400).json({ message: "Cannot delete 'admin' role" });
+    }
+
+    setting.values = setting.values.filter((v) => v !== value);
+    await setting.save();
+
+    res.json(setting.values);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getUserStats,
   getAllUsers,
   deleteUser,
+  getSettings,
+  addSettingValue,
+  deleteSettingValue,
 };

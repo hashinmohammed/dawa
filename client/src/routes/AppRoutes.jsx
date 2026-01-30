@@ -4,6 +4,7 @@ import { Login } from "../pages/login";
 import { Signup } from "../pages/signup";
 import { Admin } from "../pages/admin";
 import { Users } from "../pages/admin/Users";
+import { Settings } from "../pages/admin/Settings";
 import { PatientList } from "../pages/patient-list";
 import { ProtectedRoute } from "../features/auth/ui/ProtectedRoute";
 import { AdminRoute } from "../features/auth/ui/AdminRoute";
@@ -20,7 +21,8 @@ export const AppRoutes = () => {
 
       <Route element={<AdminRoute />}>
         <Route path={PATH.ADMIN} element={<Admin />} />
-        <Route path="/admin/users" element={<Users />} />
+        <Route path={PATH.ADMIN_USERS} element={<Users />} />
+        <Route path="/admin/settings" element={<Settings />} />
       </Route>
 
       <Route element={<PublicRoute />}>

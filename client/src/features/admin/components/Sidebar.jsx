@@ -20,7 +20,7 @@ export function Sidebar() {
     {
       name: "Users",
       icon: <Users size={20} />,
-      path: "/admin/users", // Placeholder for now
+      path: PATH.ADMIN_USERS,
     },
     {
       name: "Settings",

@@ -3,5 +3,6 @@ export const PATH = {
   SIGNUP: "/signup",
   HOME: "/",
   ADMIN: "/admin",
+  ADMIN_USERS: "/admin/users",
   PATIENT_LIST: "/patients",
 };

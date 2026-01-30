@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { PATH } from "../../../constants/path";
 import { useRegisterPatient } from "../api/usePatientMutations";
+import { useSettings } from "../../admin/api/useSettings";
+import { useUsers } from "../../admin/api/useUsers";
 
 export function RegistrationForm({ isAuthenticated }) {
   const [useSameNumber, setUseSameNumber] = useState(false);
   const [isCustomDepartment, setIsCustomDepartment] = useState(false);
-  const [isCustomDoctor, setIsCustomDoctor] = useState(false);
+
+  // Fetch dynamic settings and users
+  const { settings } = useSettings();
+  const { data: users } = useUsers();
+
+  // Filter doctors from users list
+  const doctors = useMemo(
+    () => users?.filter((u) => u.role === "doctor").map((d) => d.name) || [],
+    [users],
+  );
+  const departments = useMemo(() => settings?.departments || [], [settings]);
 
   const registerMutation = useRegisterPatient();
 
@@ -21,10 +33,20 @@ export function RegistrationForm({ isAuthenticated }) {
     watch,
   } = useForm({
     defaultValues: {
-      department: "General Practitioner",
-      doctor: "Dr. Sarah Wilson",
+      department: "",
+      doctor: "",
     },
   });
+
+  // Pre-fill default values if available
+  useEffect(() => {
+    if (departments.length > 0 && !getValues("department")) {
+      setValue("department", departments[0]);
+    }
+    if (doctors.length > 0 && !getValues("doctor")) {
+      setValue("doctor", doctors[0]);
+    }
+  }, [departments, doctors, setValue, getValues]);
 
   const onSubmit = (data) => {
     registerMutation.mutate(data, {
@@ -269,13 +291,7 @@ export function RegistrationForm({ isAuthenticated }) {
               Department *
             </label>
             <div className="flex flex-wrap gap-3 mb-3">
-              {[
-                "General Practitioner",
-                "Pediatrics",
-                "Cardiology",
-                "Orthopedics",
-                "Gynecology",
-              ].map((dept) => (
+              {departments.map((dept) => (
                 <button
                   key={dept}
                   type="button"
@@ -333,22 +349,15 @@ export function RegistrationForm({ isAuthenticated }) {
               Doctor *
             </label>
             <div className="flex flex-wrap gap-3 mb-3">
-              {[
-                "Dr. Sarah Wilson",
-                "Dr. James Chen",
-                "Dr. Emily Brooks",
-                "Dr. Michael Ross",
-                "Dr. David Patel",
-              ].map((doc) => (
+              {doctors.map((doc) => (
                 <button
                   key={doc}
                   type="button"
                   onClick={() => {
                     setValue("doctor", doc);
-                    setIsCustomDoctor(false);
                   }}
                   className={`px-4 py-2 text-sm font-medium border rounded-lg transition-all duration-200 ${
-                    !isCustomDoctor && watch("doctor") === doc
+                    watch("doctor") === doc
                       ? "bg-indigo-600 text-white border-indigo-600 shadow-md transform -translate-y-0.5"
                       : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500"
                   }`}
@@ -356,36 +365,30 @@ export function RegistrationForm({ isAuthenticated }) {
                   {doc}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setValue("doctor", "");
-                  setIsCustomDoctor(true);
-                }}
-                className={`px-4 py-2 text-sm font-medium border rounded-lg transition-all duration-200 ${
-                  isCustomDoctor
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow-md transform -translate-y-0.5"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500"
-                }`}
-              >
-                Other
-              </button>
+              {/* Removed "Other" option for doctors since they should be registered users? 
+                  Or should I keep "Other"? The prompt was about settings adding departments/roles.
+                  Actually, if a doctor is not in the system, maybe we shouldn't allow assigning patients to them? 
+                  Let's keep it restricted to registered doctors for now for better data integrity.
+               */}
             </div>
-            {isCustomDoctor && (
-              <input
-                {...register("doctor", {
-                  required: "Doctor is required",
-                })}
-                type="text"
-                id="doctor"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition animate-fade-in"
-                placeholder="Enter doctor name"
-                autoFocus
-              />
-            )}
+            {/* Fallback input if no doctors found? Or if they want to type? 
+                 Let's add a note or keep the text input if list is empty?
+                 Actually, let's keep the text input hidden unless we want "Other".
+                 For now, let's just show the buttons.
+              */}
+            <input
+              type="hidden"
+              {...register("doctor", { required: "Doctor is required" })}
+            />
+
             {errors.doctor && (
               <p className="mt-1 text-sm text-red-600">
                 {errors.doctor.message}
+              </p>
+            )}
+            {doctors.length === 0 && (
+              <p className="text-sm text-gray-500 italic">
+                No doctors found. Please register a doctor first.
               </p>
             )}
           </div>

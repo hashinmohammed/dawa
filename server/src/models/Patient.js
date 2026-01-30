@@ -42,7 +42,6 @@ const patientSchema = mongoose.Schema(
     },
     createdByRole: {
       type: String,
-      enum: ["admin", "doctor", "nurse"],
       required: true,
     },
   },

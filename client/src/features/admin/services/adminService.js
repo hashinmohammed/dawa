@@ -17,4 +17,17 @@ export const adminService = {
     const response = await client.delete(`/api/admin/users/${id}`);
     return response.data;
   },
+  getSettings: async () => {
+    const response = await client.get("/api/admin/settings");
+    return response.data;
+  },
+  addSettingValue: async (data) => {
+    // data = { key: 'roles', value: '...' }
+    const response = await client.post("/api/admin/settings", data);
+    return response.data;
+  },
+  deleteSettingValue: async ({ key, value }) => {
+    const response = await client.delete(`/api/admin/settings/${key}/${value}`);
+    return response.data;
+  },
 };

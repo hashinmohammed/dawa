@@ -4,8 +4,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../../shared/store/useStore";
 import { PATH } from "../../constants/path";
 import customToast from "../../shared/ui/customToast";
+import { useSettings } from "../../features/admin/api/useSettings";
 
 export function Signup() {
+  const { settings } = useSettings();
+  const isAdminSignupEnabled = settings?.signupFlags?.includes("admin_signup");
+  const roles =
+    settings?.roles?.filter(
+      (role) => role !== "admin" || isAdminSignupEnabled,
+    ) || [];
+
   const {
     register,
     handleSubmit,
@@ -85,9 +93,12 @@ export function Signup() {
                 {...register("role", { required: true })}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-white"
               >
-                <option value="nurse">Nurse</option>
-                <option value="doctor">Doctor</option>
-                <option value="admin">Admin</option>
+                <option value="">Select Role</option>
+                {roles.map((role) => (
+                  <option key={role} value={role}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </option>
+                ))}
               </select>
               {errors.role && (
                 <span className="text-red-500 text-xs">Role is required</span>
