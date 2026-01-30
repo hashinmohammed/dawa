@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AdminLayout } from "../../features/admin/components/AdminLayout";
 import { useSettings } from "../../features/admin/api/useSettings";
-import { Plus, X, Building2, ShieldCheck, Loader2 } from "lucide-react";
+import { Plus, X, Building2, ShieldCheck, MapPin, Loader2 } from "lucide-react";
 
 export function Settings() {
   const { settings, isLoading, isError, addValue, deleteValue, isAdding } =
@@ -22,6 +22,15 @@ export function Settings() {
     if (newRole.trim()) {
       addValue({ key: "roles", value: newRole.trim().toLowerCase() });
       setNewRole("");
+    }
+  };
+
+  const [newPlace, setNewPlace] = useState("");
+  const handleAddPlace = (e) => {
+    e.preventDefault();
+    if (newPlace.trim()) {
+      addValue({ key: "places", value: newPlace.trim() });
+      setNewPlace("");
     }
   };
 
@@ -102,6 +111,65 @@ export function Settings() {
               type="submit"
               disabled={!newDepartment.trim() || isAdding}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+            >
+              {isAdding ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Plus size={18} />
+              )}
+              Add
+            </button>
+          </form>
+        </div>
+
+        {/* Places Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-green-100 rounded-lg text-green-600">
+              <MapPin size={24} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Places</h2>
+          </div>
+
+          <div className="mb-6">
+            <div className="text-sm text-gray-500 mb-4">
+              Manage locations/places available for patient registration.
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {settings?.places?.map((place) => (
+                <div
+                  key={place}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg text-sm border border-gray-100 group"
+                >
+                  <span>{place}</span>
+                  <button
+                    onClick={() => deleteValue({ key: "places", value: place })}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {settings?.places?.length === 0 && (
+                <span className="text-sm text-gray-400 italic">
+                  No places added yet.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <form onSubmit={handleAddPlace} className="flex gap-2">
+            <input
+              type="text"
+              value={newPlace}
+              onChange={(e) => setNewPlace(e.target.value)}
+              placeholder="Enter new place..."
+              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+            />
+            <button
+              type="submit"
+              disabled={!newPlace.trim() || isAdding}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
             >
               {isAdding ? (
                 <Loader2 size={18} className="animate-spin" />
@@ -201,6 +269,44 @@ export function Settings() {
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                     settings?.signupFlags?.includes("admin_signup")
+                      ? "translate-x-6"
+                      : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+              <div>
+                <div className="font-medium text-gray-700">
+                  Require Admin Approval
+                </div>
+                <div className="text-sm text-gray-500">
+                  New users must be approved by an admin
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const isEnabled =
+                    settings?.signupFlags?.includes("manual_approval");
+                  if (isEnabled) {
+                    deleteValue({
+                      key: "signup_flags",
+                      value: "manual_approval",
+                    });
+                  } else {
+                    addValue({ key: "signup_flags", value: "manual_approval" });
+                  }
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                  settings?.signupFlags?.includes("manual_approval")
+                    ? "bg-purple-600"
+                    : "bg-gray-200"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings?.signupFlags?.includes("manual_approval")
                       ? "translate-x-6"
                       : "translate-x-1"
                   }`}

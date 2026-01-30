@@ -24,6 +24,15 @@ const userSchema = mongoose.Schema(
       type: String,
       default: "nurse",
     },
+    department: {
+      type: String,
+      default: "",
+    },
+    status: {
+      type: String,
+      enum: ["active", "pending", "rejected"],
+      default: "active",
+    },
     refreshTokens: [
       {
         token: String,

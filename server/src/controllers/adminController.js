@@ -181,6 +181,27 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// @desc    Update User Status
+// @route   PATCH /api/admin/users/:id/status
+// @access  Private/Admin
+const updateUserStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.status = status;
+    await user.save();
+
+    res.json({ message: `User status updated to ${status}`, user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const Setting = require("../models/Setting");
 
 // @desc    Get All Settings (Roles, Departments)
@@ -190,6 +211,7 @@ const getSettings = async (req, res) => {
   try {
     let roles = await Setting.findOne({ key: "roles" });
     let departments = await Setting.findOne({ key: "departments" });
+    let places = await Setting.findOne({ key: "places" });
     let signupFlags = await Setting.findOne({ key: "signup_flags" });
 
     // Initialize defaults if not present
@@ -207,6 +229,13 @@ const getSettings = async (req, res) => {
       });
     }
 
+    if (!places) {
+      places = await Setting.create({
+        key: "places",
+        values: ["Kasaragod", "Kanhangad", "Payyanur"],
+      });
+    }
+
     if (!signupFlags) {
       signupFlags = await Setting.create({
         key: "signup_flags",
@@ -217,6 +246,7 @@ const getSettings = async (req, res) => {
     res.json({
       roles: roles.values,
       departments: departments.values,
+      places: places.values,
       signupFlags: signupFlags.values,
     });
   } catch (error) {
@@ -287,4 +317,5 @@ module.exports = {
   getSettings,
   addSettingValue,
   deleteSettingValue,
+  updateUserStatus,
 };

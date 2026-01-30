@@ -6,6 +6,8 @@ import {
   HeartPulse,
   User,
   Trash2,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import { AdminLayout } from "../../features/admin/components/AdminLayout";
 import { useUserStats } from "../../features/admin/api/useUserStats";
@@ -24,7 +26,7 @@ export function Users() {
     isLoading: usersLoading,
     isError: usersError,
   } = useUsers();
-  const { deleteUser } = useUserMutations();
+  const { deleteUser, updateUserStatus } = useUserMutations();
 
   const [selectedRole, setSelectedRole] = useState("all");
 
@@ -179,14 +181,28 @@ export function Users() {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${roleConfig.color}`}
-                      >
-                        {roleConfig.icon}
-                        <span className="capitalize">
-                          {user.role || "Unknown"}
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium w-fit ${roleConfig.color}`}
+                        >
+                          {roleConfig.icon}
+                          <span className="capitalize">
+                            {user.role || "Unknown"}
+                          </span>
                         </span>
-                      </span>
+                        {user.status && user.status !== "active" && (
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded text-xs font-medium w-fit ${
+                              user.status === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {user.status.charAt(0).toUpperCase() +
+                              user.status.slice(1)}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-600">
                       {user.phoneNumber}
@@ -195,13 +211,43 @@ export function Users() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <button
-                        onClick={() => handleDelete(user._id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete User"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        {user.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() =>
+                                updateUserStatus.mutate({
+                                  id: user._id,
+                                  status: "active",
+                                })
+                              }
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Approve User"
+                            >
+                              <ShieldCheck size={18} />
+                            </button>
+                            <button
+                              onClick={() =>
+                                updateUserStatus.mutate({
+                                  id: user._id,
+                                  status: "rejected",
+                                })
+                              }
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Reject User"
+                            >
+                              <X size={18} />
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleDelete(user._id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete User"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

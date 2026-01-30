@@ -7,6 +7,7 @@ const {
   getSettings,
   addSettingValue,
   deleteSettingValue,
+  updateUserStatus,
 } = require("../controllers/adminController");
 const { protect, admin } = require("../middlewares/authMiddleware");
 
@@ -20,5 +21,7 @@ router.delete("/users/:id", protect, admin, deleteUser);
 router.get("/settings", getSettings);
 router.post("/settings", protect, admin, addSettingValue);
 router.delete("/settings/:key/:value", protect, admin, deleteSettingValue);
+
+router.patch("/users/:id/status", protect, admin, updateUserStatus);
 
 module.exports = router;

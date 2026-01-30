@@ -9,7 +9,7 @@ const {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, phoneNumber } = req.body;
+    const { name, email, password, role, phoneNumber, department } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -17,15 +17,40 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    const Setting = require("../models/Setting");
+    const signupFlags = await Setting.findOne({ key: "signup_flags" });
+    const isManualApproval =
+      signupFlags && signupFlags.values.includes("manual_approval");
+
+    // If user is admin, they are always active (or maybe first admin is active?)
+    // Let's assume admin role signup is protected by other means or only enabled explicitly
+    // But per prompt, "any role except admin roles should take from added roles", implies admin is special.
+    // Let's keep admin active for safety if they manage to sign up (since admin signup is toggled).
+    // Or just apply to all? Let's apply to all non-first-admin if we want strictness.
+    // Simple approach: Apply to all. But careful with initial setup.
+    // User passed prompt: "in users at admin when a user signup need to allow or disallow can be done by admin manually"
+
+    const status = isManualApproval ? "pending" : "active";
+
     const user = await User.create({
       name,
       email,
       password,
       role,
       phoneNumber,
+      department: role === "admin" ? "" : req.body.department,
+      status, // Default is active in schema, but we override here
     });
 
     if (user) {
+      if (status === "pending") {
+        return res.status(201).json({
+          message:
+            "Account created successfully. Please wait for admin approval.",
+          pending: true,
+        });
+      }
+
       const accessToken = generateAccessToken(user._id);
       const refreshToken = generateRefreshToken(user._id);
 
@@ -39,6 +64,7 @@ const registerUser = async (req, res) => {
         email: user.email,
         role: user.role,
         phoneNumber: user.phoneNumber,
+        status: user.status,
         accessToken,
         refreshToken,
       });
@@ -60,6 +86,15 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      if (user.status && user.status !== "active") {
+        return res.status(403).json({
+          message:
+            user.status === "pending"
+              ? "Your account is pending approval. Please contact admin."
+              : "Your account has been rejected or suspended.",
+        });
+      }
+
       const accessToken = generateAccessToken(user._id);
       const refreshToken = generateRefreshToken(user._id);
 

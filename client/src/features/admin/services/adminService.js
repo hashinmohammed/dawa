@@ -17,6 +17,12 @@ export const adminService = {
     const response = await client.delete(`/api/admin/users/${id}`);
     return response.data;
   },
+  updateUserStatus: async (id, status) => {
+    const response = await client.patch(`/api/admin/users/${id}/status`, {
+      status,
+    });
+    return response.data;
+  },
   getSettings: async () => {
     const response = await client.get("/api/admin/settings");
     return response.data;

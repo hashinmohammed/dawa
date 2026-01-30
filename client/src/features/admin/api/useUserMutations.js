@@ -19,5 +19,19 @@ export const useUserMutations = () => {
     },
   });
 
-  return { deleteUser };
+  const updateUserStatus = useMutation({
+    mutationFn: ({ id, status }) => adminService.updateUserStatus(id, status),
+    onSuccess: (data) => {
+      customToast.success(data.message || "User status updated");
+      queryClient.invalidateQueries(["users"]);
+      queryClient.invalidateQueries(["userStats"]);
+    },
+    onError: (error) => {
+      customToast.error(
+        error.response?.data?.message || "Failed to update user status",
+      );
+    },
+  });
+
+  return { deleteUser, updateUserStatus };
 };

@@ -13,14 +13,6 @@ export function RegistrationForm({ isAuthenticated }) {
   // Fetch dynamic settings and users
   const { settings } = useSettings();
   const { data: users } = useUsers();
-
-  // Filter doctors from users list
-  const doctors = useMemo(
-    () => users?.filter((u) => u.role === "doctor").map((d) => d.name) || [],
-    [users],
-  );
-  const departments = useMemo(() => settings?.departments || [], [settings]);
-
   const registerMutation = useRegisterPatient();
 
   const {
@@ -38,15 +30,41 @@ export function RegistrationForm({ isAuthenticated }) {
     },
   });
 
+  const selectedDepartment = watch("department");
+
+  // Memoize departments
+  const departments = useMemo(() => settings?.departments || [], [settings]);
+
+  // Filter doctors from users list based on selected department
+  const doctors = useMemo(() => {
+    let filteredUsers = users?.filter((u) => u.role === "doctor") || [];
+
+    if (selectedDepartment && !isCustomDepartment) {
+      // Filter doctors that belong to the selected department
+      // Note: If no department is assigned to a doctor, they won't show up for specific departments
+      filteredUsers = filteredUsers.filter(
+        (u) => u.department === selectedDepartment,
+      );
+    }
+
+    return filteredUsers.map((d) => d.name);
+  }, [users, selectedDepartment, isCustomDepartment]);
+
   // Pre-fill default values if available
   useEffect(() => {
-    if (departments.length > 0 && !getValues("department")) {
+    if (
+      !isCustomDepartment &&
+      departments.length > 0 &&
+      !getValues("department")
+    ) {
       setValue("department", departments[0]);
     }
+    // Only set default doctor if one isn't selected or if the current one is invalid?
+    // For simplicity, just set if empty.
     if (doctors.length > 0 && !getValues("doctor")) {
       setValue("doctor", doctors[0]);
     }
-  }, [departments, doctors, setValue, getValues]);
+  }, [departments, doctors, setValue, getValues, isCustomDepartment]);
 
   const onSubmit = (data) => {
     registerMutation.mutate(data, {
@@ -257,8 +275,8 @@ export function RegistrationForm({ isAuthenticated }) {
           {errors.place && (
             <p className="mt-1 text-sm text-red-600">{errors.place.message}</p>
           )}
-          <div className="mt-2 flex gap-4">
-            {["Kasaragod", "Kanhangad", "Payyanur"].map((p) => (
+          <div className="flex flex-wrap gap-4 mt-2">
+            {settings?.places?.map((p) => (
               <div key={p} className="flex items-center">
                 <input
                   type="checkbox"
@@ -271,11 +289,11 @@ export function RegistrationForm({ isAuthenticated }) {
                       setValue("place", "");
                     }
                   }}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
                 <label
                   htmlFor={`place-${p}`}
-                  className="ml-2 text-sm text-gray-600 cursor-pointer"
+                  className="ml-2 block text-sm text-gray-900"
                 >
                   {p}
                 </label>
@@ -298,6 +316,7 @@ export function RegistrationForm({ isAuthenticated }) {
                   onClick={() => {
                     setValue("department", dept);
                     setIsCustomDepartment(false);
+                    setValue("doctor", ""); // Clear doctor to force re-selection from valid list
                   }}
                   className={`px-4 py-2 text-sm font-medium border rounded-lg transition-all duration-200 ${
                     !isCustomDepartment && watch("department") === dept
@@ -313,6 +332,7 @@ export function RegistrationForm({ isAuthenticated }) {
                 onClick={() => {
                   setValue("department", "");
                   setIsCustomDepartment(true);
+                  setValue("doctor", "");
                 }}
                 className={`px-4 py-2 text-sm font-medium border rounded-lg transition-all duration-200 ${
                   isCustomDepartment

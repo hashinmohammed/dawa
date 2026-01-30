@@ -13,6 +13,7 @@ export function Signup() {
     settings?.roles?.filter(
       (role) => role !== "admin" || isAdminSignupEnabled,
     ) || [];
+  const departments = settings?.departments || [];
 
   const {
     register,
@@ -25,14 +26,25 @@ export function Signup() {
 
   const onSubmit = async (data) => {
     try {
-      const { name, email, password, role, phoneNumber } = data;
+      const { name, email, password, role, phoneNumber, department } = data;
       const res = await client.post("/api/auth/signup", {
         name,
         email,
         password,
         role,
         phoneNumber,
+        department,
       });
+
+      if (res.data.pending) {
+        customToast.success(
+          res.data.message ||
+            "Account created. Please wait for admin approval.",
+        );
+        navigate(PATH.LOGIN);
+        return;
+      }
+
       // Login locally with both tokens
       login(res.data, res.data.accessToken, res.data.refreshToken);
       customToast.success("Account created successfully!");
@@ -104,6 +116,29 @@ export function Signup() {
                 <span className="text-red-500 text-xs">Role is required</span>
               )}
             </div>
+
+            {watch("role") && watch("role") !== "admin" && (
+              <div>
+                <select
+                  {...register("department", { required: true })}
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-white"
+                >
+                  <option value="">Select Department</option>
+                  {departments?.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                  <option value="Other">Other</option>
+                </select>
+                {errors.department && (
+                  <span className="text-red-500 text-xs">
+                    Department is required
+                  </span>
+                )}
+              </div>
+            )}
+
             <div>
               <input
                 {...register("password", { required: true })}
