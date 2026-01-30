@@ -144,7 +144,46 @@ const getUserStats = async (req, res) => {
   }
 };
 
+// @desc    Get All Users List
+// @route   GET /api/admin/users
+// @access  Private/Admin
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete User
+// @route   DELETE /api/admin/users/:id
+// @access  Private/Admin
+const deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (
+      user.role === "admin" &&
+      (await User.countDocuments({ role: "admin" })) <= 1
+    ) {
+      return res.status(400).json({ message: "Cannot delete the last admin" });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "User removed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getUserStats,
+  getAllUsers,
+  deleteUser,
 };
